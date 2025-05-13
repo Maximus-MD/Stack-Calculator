@@ -2,6 +2,8 @@ package cedacri.training;
 
 import lombok.Getter;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Stack;
 
 @Getter
@@ -13,18 +15,13 @@ public class Calculator {
     }
 
     public static double calculateRpnExpression(String expression) {
+        Stack<Double> stack = new Stack<>();
+
         if (expression.isEmpty()) {
             throw new IllegalArgumentException("Expression is empty.");
         }
 
-        Stack<Double> stack = new Stack<>();
-
-        expression = infixToRPN(expression);
-
-        String[] expressionArray = expression.split("");
-
-        double x, y;
-        double result;
+        List<String> expressionArray = infixToRPN(expression);
 
         for (String s : expressionArray) {
             try {
@@ -32,10 +29,10 @@ public class Calculator {
                 stack.push(number);
             } catch (NumberFormatException e) {
                 if (stack.size() >= 2) {
-                    y = stack.pop();
-                    x = stack.pop();
+                    double y = stack.pop();
+                    double x = stack.pop();
 
-                    result = switch (s) {
+                    double result = switch (s) {
                         case "+" -> x + y;
                         case "-" -> x - y;
                         case "*" -> x * y;
@@ -49,46 +46,45 @@ public class Calculator {
         return stack.pop();
     }
 
-    private static String infixToRPN(String expression) {
-        Stack<Character> stack = new Stack<>();
-        StringBuilder result = new StringBuilder();
+    private static List<String> infixToRPN(String expression) {
+        Stack<String> stack = new Stack<>();
+        List<String> result = new ArrayList<>();
+        String[] splitExpression = expression
+                .replaceAll("([()*/+-])", " $1 ")
+                .trim()
+                .split("\\s+");
 
-        for (char c : expression.toCharArray()) {
-            if (Character.isLetter(c)) {
+        for (String s : splitExpression) {
+            if (s.matches("(?=.*[A-Za-z])(?=.*\\d).*")) {
                 throw new IllegalArgumentException("Invalid expression : not a digit.");
-            } else if(isSpace(c)){
-                continue;
-            } else if (Character.isDigit(c)) {
-                result.append(c);
-            } else if (c == '(') {
-                stack.push(c);
-            } else if (c == ')') {
-                while (!stack.isEmpty() && stack.peek() != '(') {
-                    result.append(stack.pop());
+            } else if (s.matches("[0-9]+")) {
+                result.add(s);
+            } else if (s.equals("(")) {
+                stack.push(s);
+            } else if (s.equals(")")) {
+                while (!stack.isEmpty() && !stack.peek().equals("(")) {
+                    result.add(stack.pop());
                 }
                 stack.pop();
             } else {
-                while (!stack.isEmpty() && priorityOfOperator(c) <= priorityOfOperator(stack.peek())) {
-                    result.append(stack.pop());
+                while (!stack.isEmpty() && priorityOfOperator(s) <= priorityOfOperator(stack.peek())) {
+                    result.add(stack.pop());
                 }
-                stack.push(c);
+                stack.push(s);
             }
         }
         while (!stack.isEmpty()) {
-            result.append(stack.pop());
+            result.add(stack.pop());
         }
 
-        return result.toString();
+        System.out.println("RPN expression : " + result);
+        return result;
     }
 
-    private static boolean isSpace(char c) {
-        return c == ' ';
-    }
-
-    private static int priorityOfOperator(char c) {
-        if (c == '/' || c == '*') {
+    private static int priorityOfOperator(String str) {
+        if (str.equals("/") || str.equals("*")) {
             return 2;
-        } else if (c == '-' || c == '+') {
+        } else if (str.equals("-") || str.equals("+")) {
             return 1;
         } else {
             return -1;
@@ -98,10 +94,14 @@ public class Calculator {
     public static void main(String[] args) {
         Calculator calculator = new Calculator("4 + (2 /2+3)*7-5");
         Calculator calculator1 = new Calculator("( 1 + 2) * 3");
-        Calculator calculator2 = new Calculator("((6/3)+2)*4");
+        Calculator calculator2 = new Calculator("4*(5/3)");
+        Calculator calculator3 = new Calculator("(11 + 18) * 20 - 2 ");
+        Calculator calculator4 = new Calculator("(350 * 18) / 27 - 85 + (741 / 9) ");
 
-        System.out.println("4 + (2 / 2 + 3) * 7 - 5 = " + calculateRpnExpression(calculator.getExpression()));
-        System.out.println("(1 + 2) * 3 = " + calculateRpnExpression(calculator1.getExpression()));
-        System.out.println("((6 / 3) + 2) * 4 = " + calculateRpnExpression(calculator2.getExpression()));
+        System.out.println("4 + (2 / 2 + 3) * 7 - 5 = " + calculateRpnExpression(calculator.getExpression()) + "\n");
+        System.out.println("(1 + 2) * 3 = " + calculateRpnExpression(calculator1.getExpression()) + "\n");
+        System.out.println("4 * (5 / 3) = " + calculateRpnExpression(calculator2.getExpression()) + "\n");
+        System.out.println("(11 + 18) * 20 - 2 = " + calculateRpnExpression(calculator3.getExpression()) + "\n");
+        System.out.println("(350 * 18) / 27 - 85 + (741 / 9) = " + calculateRpnExpression(calculator4.getExpression()) + "\n");
     }
 }
